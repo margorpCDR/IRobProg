@@ -1,3 +1,5 @@
+#define GEAR_RATIO 116160                             //116160=>pulse/rotate
+
 volatile long value1 = 0; //left
 volatile long value2 = 0;
 volatile uint8_t prev1 = 0;
@@ -72,13 +74,13 @@ void updateEncoder2(){
 void straight(long value1, long value2){
   int right=0, left=0;
   int Rspeed = 20, Lspeed = 20;
-  if(value1<-116160){                             //116160=>pulse/rotate
-    value1 += 116160;
-    value2 += 116160;
+  if(value1<-GEAR_RATIO){
+    value1 += GEAR_RATIO;
+    value2 += GEAR_RATIO;
   }
-  if(value1>116160){
-    value1 -= 116160;
-    value2 -= 116160;
+  if(value1>GEAR_RATIO){
+    value1 -= GEAR_RATIO;
+    value2 -= GEAR_RATIO;
   }
   if(value1>value2){
     right++;
