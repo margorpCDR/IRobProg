@@ -31,6 +31,8 @@ void loop() {
   Serial.print("  ");
   Serial.println(value2);
 */
+
+  straight(value1, value2);
 }
 
 void updateEncoder1(){
@@ -43,7 +45,8 @@ void updateEncoder1(){
 
   if(encoded1 == 0b1101 || encoded1 == 0b0100 || encoded1 == 0b0010 || encoded1 == 0b1011){
     value1 ++;
-  } else if(encoded1 == 0b1110 || encoded1 == 0b0111 || encoded1 == 0b0001 || encoded1 == 0b1000) {
+  }
+  else if(encoded1 == 0b1110 || encoded1 == 0b0111 || encoded1 == 0b0001 || encoded1 == 0b1000) {
     value1 --;
   }
 
@@ -58,7 +61,8 @@ void updateEncoder2(){
 
   if(encoded2 == 0b1101 || encoded2 == 0b0100 || encoded2 == 0b0010 || encoded2 == 0b1011){
     value2 ++;
-  } else if(encoded2 == 0b1110 || encoded2 == 0b0111 || encoded2 == 0b0001 || encoded2 == 0b1000) {
+  }
+  else if(encoded2 == 0b1110 || encoded2 == 0b0111 || encoded2 == 0b0001 || encoded2 == 0b1000) {
     value2 --;
   }
 
@@ -69,7 +73,7 @@ void straight(long value1, long value2){
   int right=0, left=0;
   int Rspeed = 20, Lspeed = 20;
   if(value1<-116160){                             //116160=>pulse/rotate
-    value1 +=116160;
+    value1 += 116160;
     value2 += 116160;
   }
   if(value1>116160){
