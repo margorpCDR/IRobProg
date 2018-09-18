@@ -4,6 +4,7 @@ volatile long value1 = 0; //left
 volatile long value2 = 0;
 volatile uint8_t prev1 = 0;
 volatile uint8_t prev2 = 0;
+volatile char RLflg='S'
 
 void updateEncoder1();
 void updateEncoder2();
@@ -83,10 +84,18 @@ void straight(long value1, long value2){
     value2 -= GEAR_RATIO;
   }
   if(value1>value2){
+    if(RLflg=='L'){
+      right = 0;
+      left = 0;
+    }
     right++;
     left--;
   }
   else if(value1<value2){
+    if(RLflg=='R'){
+      right = 0;
+      left = 0;
+    }
     left++;
     right--;
   }
