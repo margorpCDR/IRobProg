@@ -1,10 +1,10 @@
-#define GEAR_RATIO 116160                             //116160=>pulse/rotate
-
+//#define GEAR_RATIO 116160                             //116160=>pulse/rotate
+#define GEAR_RATIO 9800 
 volatile long value1 = 0; //left
 volatile long value2 = 0;
 volatile uint8_t prev1 = 0;
 volatile uint8_t prev2 = 0;
-volatile char RLflg='S'
+volatile int RLflg= 0;
 
 void updateEncoder1();
 void updateEncoder2();
@@ -84,22 +84,25 @@ void straight(long value1, long value2){
     value2 -= GEAR_RATIO;
   }
   if(value1>value2){
-    if(RLflg=='L'){
+    if(RLflg=='-1'){
       right = 0;
       left = 0;
     }
+    RLflg = 1;
     right++;
     left--;
   }
   else if(value1<value2){
-    if(RLflg=='R'){
+    if(RLflg=='1'){
       right = 0;
       left = 0;
     }
+    RLflg = -1;
     left++;
     right--;
   }
   else{
+    RLflg = 0;
     right = 0;
     left = 0;
   }
