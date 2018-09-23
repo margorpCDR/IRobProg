@@ -1,0 +1,52 @@
+#include "mbed.h"
+#include "Motor.h"
+#include "QEI.h"
+ 
+BusOut led(LED1, LED2, LED3, LED4);
+Ticker control;
+Motor motor_left(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_PWM);
+Motor motor_right(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_PWM);
+BusIn in(GPIO1, GPIO2, GPIO3, GPIO4);
+QEI qei_left(GPIO1, GPIO2, NC, 48, QEI::X4_ENCODING);
+QEI qei_right(GPIO3, GPIO4, NC, 48, QEI::X4_ENCODING);
+ 
+double speed_left_ref = 0.2, speed_right_ref = 0.2;
+double speed_left_lpf = 0.0, speed_right_lpf = 0.0;
+const double sampling_time = 0.020;
+const double move_per_pulse = 0.0005;
+double i_left = 0.0, i_right = 0.0;
+const double kp = 3.84;
+ 
+double low_pass_filter(double val, double pre_val, double gamma) {  
+return gamma * pre_val + (1.0 - gamma) * val;
+}
+ 
+void control_handler() { 
+int enc_left = qei_left.getPulses();  
+int enc_right = qei_right.getPulses();  
+qei_left.reset();  
+qei_right.reset();   
+double speed_left = move_per_pulse * enc_left / sampling_time;  
+double speed_right = move_per_pulse * enc_right / sampling_time;  
+speed_left_lpf = low_pass_filter(speed_left, speed_left_lpf, 0.4);  
+speed_right_lpf = low_pass_filter(speed_right, speed_right_lpf, 0.4);  
+double delta_speed_left = speed_left_ref - speed_left_lpf;  
+double delta_speed_right = -speed_right_ref - speed_right_lpf;  
+i_left += delta_speed_left * sampling_time;  
+i_right += delta_speed_right * sampling_time;  
+motor_left = kp * delta_speed_left + i_left;  
+motor_right = kp * delta_speed_right + i_right;
+}
+ 
+int main() {  
+in.mode(PullUp);  
+motor_left.setMaxRatio(1.0);  
+motor_right.setMaxRatio(1.0);  
+control.attach(&control_handler, sampling_time);  
+led = 1; 
+ while(1){    
+led = (led << 1) | (led == 0x08);    
+wait(0.5);   
+}
+}
+ 
