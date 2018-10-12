@@ -1,137 +1,127 @@
 #include<stdio.h>
 #include<math.h>
 #include <FlexiTimer2.h>
+
 #define TIME 0.20
 #define RADIUS 50           
-#define GEAR_RATIO 9900
+#define GEAR_RATIO 116160
 #define VPGAIN_r 0.15
 #define VDGAIN_r 0.0
 #define VIGAIN_r 0.02
 #define VPGAIN_l 0.15
 #define VDGAIN_l 0.0
 #define VIGAIN_l 0.02
-double move_per_pulse = 0.01586662956;                   //1pulseで進む距離mm 重要
+#define MOVE_PER_PULSE 0.02136585468                      //1pulseで進む距離[mm]
+#define SPEED_RIGHT_REF 200                               //target speed[mm/s]
+#define SPEED_LEFT_REF 200
 
-double i_right = 0.0;
-double i_left = 0.0;
-
-double motor_right;
-double motor_left;
-
-double speed_left_ref = 200, speed_right_ref= 200;         //目標速度
-double speed_right_lpf =0.0, speed_left_lpf =0.0;        //low pass filterの初期化 motor
-
+double motor_right, motor_left;
  
-volatile int value1 = 0, value2 = 0;
-volatile uint8_t prev1 = 0, prev2 = 0;
+volatile int enc_val_right = 0, enc_val_left = 0;
+volatile uint8_t enc_prev1 = 0, enc_prev2 = 0;
 
 
-void setup() {
-  
-  pinMode(6,OUTPUT);
-  pinMode(7,OUTPUT);
-  pinMode(8,OUTPUT);
-  pinMode(11,OUTPUT);
-  
-  pinMode(2, INPUT);        //encoder r
-  pinMode(3, INPUT);
-  pinMode(18,INPUT);        //encoder l
-  pinMode(19,INPUT);
-  
-  attachInterrupt(0, updateEncoder1, CHANGE);
-  attachInterrupt(1, updateEncoder1, CHANGE);
-  attachInterrupt(4, updateEncoder2, CHANGE);
-  attachInterrupt(5, updateEncoder2, CHANGE);
-  
+void setup(){
+//encoder setting
+  pinMode(18, INPUT);                                   //encoder r
+  pinMode(19, INPUT);
+  pinMode(20, INPUT);                                  //encoder l
+  pinMode(21, INPUT);
+  attachInterrupt(5, updateEncoder1, CHANGE);           //interrupt pin18=5, pin19=4
+  attachInterrupt(4, updateEncoder1, CHANGE);
+  attachInterrupt(3, updateEncoder2, CHANGE);
+  attachInterrupt(2, updateEncoder2, CHANGE);
+
+//motor setting
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);  
   digitalWrite(2, HIGH);
   digitalWrite(3, HIGH);
-  digitalWrite(18,HIGH);
-  digitalWrite(19,HIGH);
+  digitalWrite(18, HIGH);
+  digitalWrite(19, HIGH);
 
-  FlexiTimer2::set(TIME*1000, motorControl); // 500ms period
+  FlexiTimer2::set(TIME*1000, motorControl); // 200ms period
   FlexiTimer2::start();
   
   Serial.begin(9600);
 }
 
-void updateEncoder1()
-{
-  uint8_t a = digitalRead(2);
-  uint8_t b = digitalRead(3);
+void updateEncoder1(){
+  uint8_t a = digitalRead(18);
+  uint8_t b = digitalRead(19);
  
   uint8_t ab = (a << 1) | b;
-  uint8_t encoded  = (prev1 << 2) | ab;
+  uint8_t encoded  = (enc_prev1 << 2) | ab;
 
   if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    value1 ++;
+    enc_val_right ++;
   } else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
-    value1 --;
+    enc_val_right --;
   }
 
-  prev1 = ab;
+  enc_prev1 = ab;
 }
 
-void updateEncoder2()
-{
-  uint8_t c = digitalRead(18);
-  uint8_t d = digitalRead(19);
+void updateEncoder2(){
+  uint8_t c = digitalRead(20);
+  uint8_t d = digitalRead(21);
  
   uint8_t cd = (c << 1) | d;
-  uint8_t encoded  = (prev2 << 2) | cd;
+  uint8_t encoded  = (enc_prev2 << 2) | cd;
 
   if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    value2 ++;
+    enc_val_left ++;
   } else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
-    value2 --;
+    enc_val_left --;
   }
 
-  prev2 = cd;
+  enc_prev2 = cd;
 }
 
-double low_pass_filter(double val, double pre_val, double gamma){                              //gammma 限界値に近ずけるための定数
- return gamma * pre_val + (1-gamma)*val;  
-  }
+//gammma -> 限界値に近ずけるための定数
+double low_pass_filter(double val, double pre_val, double gamma){
+  return gamma * pre_val + (1-gamma) * val;
+}
   
 
-void motorControl(){                                                                           
-  
-  double speed_right = move_per_pulse*value1 /TIME;
-  double speed_left = move_per_pulse *value2 / TIME;
+void motorControl(){
+  double speed_right, speed_left;
+  double speed_right_lpf =0.0, speed_left_lpf =0.0;         //Low Pass Filterの初期化 motor
+  double difference_speed_right, difference_speed_left;
+  double i_right = 0.0, i_left = 0.0;
+
+  speed_right = MOVE_PER_PULSE * enc_val_right / TIME;
+  speed_left = MOVE_PER_PULSE * enc_val_left / TIME;
   speed_right_lpf = low_pass_filter(speed_right, speed_right_lpf, 0.5);
   speed_left_lpf = low_pass_filter(speed_left, speed_left_lpf, 0.5);
   
-  double difference_speed_right = speed_right_ref - speed_right_lpf;
-  double difference_speed_left = speed_left_ref - speed_left_lpf;
+  difference_speed_right = SPEED_RIGHT_REF - speed_right_lpf;
+  difference_speed_left = SPEED_LEFT_REF - speed_left_lpf;
   
   i_right += difference_speed_right * TIME;
   i_left += difference_speed_left * TIME;
   
-  motor_right = VPGAIN_r*difference_speed_right + VIGAIN_r*i_right;
-  motor_left = VPGAIN_l*difference_speed_left + VIGAIN_l*i_left;
+  motor_right = VPGAIN_r*difference_speed_right + VIGAIN_r * i_right;
+  motor_left = VPGAIN_l*difference_speed_left + VIGAIN_l * i_left;
 
-  value1=0;
-  value2=0;
+  enc_val_right=0;
+  enc_val_left=0;
+}
 
-}     
 
-
-void loop() {
-
- analogWrite(6,motor_right);                                          
- analogWrite(7,0);
- analogWrite(8,0);
- analogWrite(11,motor_left);
-// delay(100);
+void loop(){
+ analogWrite(4, motor_right);                                          
+ analogWrite(5, 0);
+ analogWrite(6, 0);
+ analogWrite(7, motor_left);
  
-                         //.確認用
-
-  Serial.print(speed_right_lpf);
+//.確認用
+  Serial.print(speed_right);
   Serial.print("  ");
   Serial.print(motor_right);
   Serial.println("  ");
- 
 }
 
  
-
-
