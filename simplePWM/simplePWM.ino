@@ -1,5 +1,6 @@
-//#define GEAR_RATIO 116160                             //116160=>pulse/rotate
-#define GEAR_RATIO 9800 
+#include<FlexiTimer2.h>
+#define GEAR_RATIO 116160                             //116160=>pulse/rotate
+//#define GEAR_RATIO 9800 
 volatile long value1 = 0; //left
 volatile long value2 = 0;
 volatile uint8_t prev1 = 0;
@@ -26,17 +27,17 @@ void setup() {
   attachInterrupt(3, updateEncoder2, CHANGE);
   attachInterrupt(2, updateEncoder2, CHANGE);
 
-//  Serial.begin(9600);
+  Serial.begin(9600);
   //SetUpencoder();
 }
 
 void loop() {
-/*  Serial.print(value1);
+  Serial.print(value1);
   Serial.print("  ");
   Serial.println(value2);
-*/
 
-  straight(value1, value2);
+
+//  straight(value1, value2);
 }
 
 void updateEncoder1(){
