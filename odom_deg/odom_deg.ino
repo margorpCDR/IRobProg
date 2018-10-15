@@ -1,37 +1,24 @@
 #include<math.h>
 #include <FlexiTimer2.h>
+#include <parameters.h>
 
-#define TREAD 294
-#define PULSE_TO_MM 0.0021365858
+#define MOTOR_TIME 0.2
 #define ODOMETRY_TIME 0.01
 
 volatile int enc_val_right = 0, enc_val_left = 0;
 volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
-double glDeg = 0.0000;
-long distance_right = 0.0000, distance_left = 0.0000;
+double glDeg = 0.00;
+long distance_right = 0.00, distance_left = 0.00;
 
 
 
 void setup() {
-//encoder setting
-  pinMode(18, INPUT);        //encoder r
-  pinMode(19, INPUT);
-  pinMode(20,INPUT);        //encoder l
-  pinMode(21,INPUT);
+  parameters();
+
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
   attachInterrupt(3, updateEncoder2, CHANGE);
   attachInterrupt(2, updateEncoder2, CHANGE);
-
-//motor setting
-  pinMode(4, OUTPUT);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(7, OUTPUT);  
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(18,HIGH);
-  digitalWrite(19,HIGH);
 
   FlexiTimer2::set(ODOMETRY_TIME * 1000, odometry);
   FlexiTimer2::start();
@@ -75,25 +62,27 @@ void updateEncoder2(){
 }
 
 void odometry(){
-  int  glX=0.0000, glY=0.0000;
-  double glOmega = 0.0000, glVelocity = 0.0000, glRho = 0.0000, glTheta = 0.0000;
+  int  glX=0.00, glY=0.00;
+  double glOmega = 0.00, glVelocity = 0.00, glRho = 0.00, glTheta = 0.00, rad = 0.00, deg = 0.00;
   
-  glOmega = ((enc_val_right - enc_val_left) * PULSE_TO_MM) / TREAD;     //Omega[rad/sec]
+  glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
   glVelocity = ((enc_val_right + enc_val_left) * PULSE_TO_MM) / 2;
 //  glRho = glOmega / glVelocity;
  
-  glTheta += glOmega;
+  glTheta = glOmega;
+  rad = glTheta * PULSE_TO_MM;
+  
+  glX += glVelocity * cos(rad);         //x座標
+  glY += glVelocity * sin(rad);         //y座標
+  glDeg += glTheta;
 
-  glX += glVelocity * cos(glTheta);         //x座標
-  glY += glVelocity * sin(glTheta);         //y座標
-  glDeg += glTheta * 180.00 / PI;             //rad to deg
-
-  distance_right += enc_val_right * PULSE_TO_MM;
-  distance_left += enc_val_left * PULSE_TO_MM;
+  distance_right += enc_val_right;    //後でPULSE_TO_MM計算
+  distance_left += enc_val_left;
   enc_val_right = 0;
   enc_val_left = 0;
 
-  Serial.println(glDeg);
+  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
+  Serial.println(deg);
 
 }
 
@@ -112,6 +101,5 @@ void loop() {
     analogWrite(7,0);
   }
 
-//  Serial.println(glDeg);
 
 }
