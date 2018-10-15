@@ -100,16 +100,16 @@ void odometry(){
 void loop() {
 
   if(abs(glDeg)<=90){
-    analogWrite(6,0);
-    analogWrite(7,100);
-    analogWrite(8,0);
-    analogWrite(11,100);
+    analogWrite(4,0);
+    analogWrite(5,30);
+    analogWrite(6,30);
+    analogWrite(7,0);
   }
   else{
+    analogWrite(4,0);
+    analogWrite(5,0);
     analogWrite(6,0);
     analogWrite(7,0);
-    analogWrite(8,0);
-    analogWrite(11,0);
   }
 
 //  Serial.println(glDeg);
