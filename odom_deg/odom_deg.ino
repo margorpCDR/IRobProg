@@ -1,135 +1,117 @@
-#include<stdio.h>
 #include<math.h>
 #include <FlexiTimer2.h>
-#define TREAD 190
-#define PULSE_TO_MM 0.01586662956
 
-long rEnc = 0.0;
-long rEncoder =0.0;
-long lEnc =0.0;
-long lEncoder =0.0;
-int  glX=0.0, glY=0.0;
+#define TREAD 294
+#define PULSE_TO_MM 0.0021365858
+#define ODOMETRY_TIME 0.01
 
-volatile int value1 = 0, value2 = 0;
-volatile uint8_t prev1 = 0, prev2 = 0;
+volatile int enc_val_right = 0, enc_val_left = 0;
+volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
+double glDeg = 0.0000;
+long distance_right = 0.0000, distance_left = 0.0000;
 
-double glOmega, glVelocity, glRho, glTheta, glDeg;
-double glAnalogVelocity;
+
 
 void setup() {
-  
-  pinMode(2, INPUT);        //encoder r
-  pinMode(3, INPUT);
-  pinMode(18,INPUT);        //encoder l
-  pinMode(19,INPUT);
-  
-  attachInterrupt(0, updateEncoder1, CHANGE);
-  attachInterrupt(1, updateEncoder1, CHANGE);
-  attachInterrupt(4, updateEncoder2, CHANGE);
-  attachInterrupt(5, updateEncoder2, CHANGE);
-  
+//encoder setting
+  pinMode(18, INPUT);        //encoder r
+  pinMode(19, INPUT);
+  pinMode(20,INPUT);        //encoder l
+  pinMode(21,INPUT);
+  attachInterrupt(5, updateEncoder1, CHANGE);
+  attachInterrupt(4, updateEncoder1, CHANGE);
+  attachInterrupt(3, updateEncoder2, CHANGE);
+  attachInterrupt(2, updateEncoder2, CHANGE);
+
+//motor setting
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);  
   digitalWrite(2, HIGH);
   digitalWrite(3, HIGH);
   digitalWrite(18,HIGH);
   digitalWrite(19,HIGH);
 
-  FlexiTimer2::set(1, odometry); // 500ms period
+  FlexiTimer2::set(ODOMETRY_TIME * 1000, odometry);
   FlexiTimer2::start();
   
   Serial.begin(9600);
 }
 
 
-void updateEncoder1()
-{
-  uint8_t a = digitalRead(2);
-  uint8_t b = digitalRead(3);
+void updateEncoder1(){
+  uint8_t a = digitalRead(18);
+  uint8_t b = digitalRead(19);
  
   uint8_t ab = (a << 1) | b;
-  uint8_t encoded  = (prev1 << 2) | ab;
+  uint8_t encoded  = (enc_prev_right << 2) | ab;
 
   if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    value1 ++;
-  } else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
-    value1 --;
+    enc_val_right ++;
+  }
+  else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000){
+    enc_val_right --;
   }
 
-  prev1 = ab;
+  enc_prev_right = ab;
 }
 
-void updateEncoder2()
-{
-  uint8_t c = digitalRead(18);
-  uint8_t d = digitalRead(19);
+void updateEncoder2(){
+  uint8_t c = digitalRead(20);
+  uint8_t d = digitalRead(21);
  
   uint8_t cd = (c << 1) | d;
-  uint8_t encoded  = (prev2 << 2) | cd;
+  uint8_t encoded  = (enc_prev_left << 2) | cd;
 
   if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    value2 ++;
-  } else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
-    value2 --;
+    enc_val_left ++;
+  }
+  else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000){
+    enc_val_left --;
   }
 
-  prev2 = cd;
+  enc_prev_left = cd;
 }
 
 void odometry(){
+  int  glX=0.0000, glY=0.0000;
+  double glOmega = 0.0000, glVelocity = 0.0000, glRho = 0.0000, glTheta = 0.0000;
   
+  glOmega = ((enc_val_right - enc_val_left) * PULSE_TO_MM) / TREAD;     //Omega[rad/sec]
+  glVelocity = ((enc_val_right + enc_val_left) * PULSE_TO_MM) / 2;
+//  glRho = glOmega / glVelocity;
  
+  glTheta += glOmega;
 
-glOmega = ((value1 - value2)*PULSE_TO_MM)/TREAD;
-glVelocity = ((value1 + value2)*PULSE_TO_MM) / 2;
-//glRho = (TREAD/2) * ((value1*PULSE_TO_MM) + (value2*PULSE_TO_MM)) / ((value1*PULSE_TO_MM) - (value2*PULSE_TO_MM));
-
-
- 
-glTheta += glOmega;   
-                                             
-//glAnalogVelocity = (rEncoder + lEncoder) / 2;
-/*if(glTheta < -PI) glTheta += (2.0*PI);      //-π～π
-  if(glTheta > PI) glTheta -= (2.0*PI);*/
-  
   glX += glVelocity * cos(glTheta);         //x座標
   glY += glVelocity * sin(glTheta);         //y座標
-  glDeg = glTheta * 180 / PI *2;             //rad to deg ２倍するとうまくいく
+  glDeg += glTheta * 180.00 / PI;             //rad to deg
 
- rEncoder +=value1;
- value1 =0;
- lEncoder +=value2;
- value2=0;
-  
-  }
+  distance_right += enc_val_right * PULSE_TO_MM;
+  distance_left += enc_val_left * PULSE_TO_MM;
+  enc_val_right = 0;
+  enc_val_left = 0;
 
-void loop() {
-
-  analogWrite(6,0);
-  analogWrite(7,30);
-  analogWrite(8,0);
-  analogWrite(11,30);
-
-if(glDeg<=-90){
-  analogWrite(6,0);
-  analogWrite(7,0);
-  analogWrite(8,0);
-  analogWrite(11,0);}
-   
-
- 
- 
-Serial.print("glOmega");
-Serial.print("  ");
-Serial.print(value2);
-Serial.print("    ");
-Serial.print("glTheta");
-Serial.print("  ");
-Serial.print(glTheta);   
-Serial.print("    ");
-Serial.print("glDeg");
-Serial.print("  ");
-Serial.println(glDeg);
-
-
+  Serial.println(glDeg);
 
 }
 
+void loop() {
+
+  if(abs(glDeg)<=90){
+    analogWrite(6,0);
+    analogWrite(7,100);
+    analogWrite(8,0);
+    analogWrite(11,100);
+  }
+  else{
+    analogWrite(6,0);
+    analogWrite(7,0);
+    analogWrite(8,0);
+    analogWrite(11,0);
+  }
+
+//  Serial.println(glDeg);
+
+}
