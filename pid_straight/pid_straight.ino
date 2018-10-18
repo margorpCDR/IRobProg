@@ -8,6 +8,7 @@
 volatile int enc_val_right = 0, enc_val_left = 0;
 volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
 double glDeg = 0.00;
+
 double  Xcur=0.00, Ycur=0.00;
 double distance_right = 0.00, distance_left = 0.00;
 
@@ -19,6 +20,7 @@ void space(){
 
 void setup() {
   parameters();
+
 
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
@@ -118,6 +120,7 @@ opposite               => CCW
   enc_val_left = 0;
 
   Serial.println(Ycur);
+
 
   deff_deg = glDeg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)));
   output = deff_deg * pGain + (SPEED_RIGHT_REF-velocity) * iGain;
