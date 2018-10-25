@@ -124,6 +124,36 @@ opposite               => CCW
 
 }
 
+void motorStraightRight(int pwm){
+  int i;
+
+  for(i = 0; i < PWM_MAX; i++){
+    if(i<pwm){
+      PORTG |= B00100000;
+//      digitalWrite(4,HIGH);
+    }
+    else{
+      PORTG &= ~B00100000;
+//      digitalWrite(4,LOW);
+    }
+  }
+}
+
+void motorStraightLeft(int pwm){
+  int i;
+  for(i = 0; i < PWM_MAX; i++){
+    if(i<pwm){
+      PORTH |= B00001000;
+//      digitalWrite(6, HIGH);
+    }
+    else{
+      PORTH &= ~B00001000;
+//      digitalWrite(6, LOW);
+    }
+  }
+}
+
+
 void loop(){
 
 if(glDeg<0){
@@ -134,7 +164,9 @@ else if(glDeg>0){
   kakunin1++;
   kakunin2--;
 }
-
+motorStraightRight(30);
+motorStraightLeft(30);
+/*
   if(abs(Ycur)<500.00){
     analogWrite(4,30+kakunin2);
     analogWrite(5,0);
@@ -147,5 +179,5 @@ else if(glDeg>0){
     analogWrite(6,0);
     analogWrite(7,0);
   }
-
+*/
 }
