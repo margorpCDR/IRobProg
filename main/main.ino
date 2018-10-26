@@ -7,8 +7,9 @@
 
 volatile int enc_val_right = 0, enc_val_left = 0;
 volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
-double glDeg = 0.00;
-double  Xcur=0.00, Ycur=0.00;
+int PWM_Right, PWM_Left;
+double glOmega = 0.00, glDeg = 0.00;
+double Xcur=0.00, Ycur=0.00;
 double distance_right = 0.00, distance_left = 0.00;
 
 double kakunin1=35.00, kakunin2=30.00;
@@ -26,7 +27,7 @@ void setup() {
   attachInterrupt(3, updateEncoder2, CHANGE);
   attachInterrupt(2, updateEncoder2, CHANGE);
 
-  FlexiTimer2::set(SPEEDCONTROL_TIME * 1000, speedControl);
+  FlexiTimer2::set(SPEEDCONTROL_TIME * 1000, odmetry);
   FlexiTimer2::start();
   
   Serial.begin(9600);
@@ -96,18 +97,12 @@ void updateEncoder2(){
   flg = 1;
 }
 
-void speedControl(){
-  double Xref = 0.00, Yref = 100.00;
-  double glOmega = 0.00, glVelocity = 0.00, glRho = 0.00, glTheta = 0.00;
-  double rad = 0.00, deg = 0.00, deff_deg = 0.00;
-  double pGainRight = 4.00, iGainRight = 0.30, dGainRight = 0.0;
-  double pGainLeft = 2.55, iGainLeft = 0.20, dGainLeft = 0.0;
+void odmetry(){
+  double glVelocity = 0.00;
+  double rad = 0.00;
 
   glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
   glDeg += glOmega;
-  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
-  deg *= 1.125;                               //miracle magic number
-
 /*==============================================================================
 from ball-zone to goal => clockwise
 opposite               => CCW
@@ -122,41 +117,13 @@ opposite               => CCW
   enc_val_right = 0;
   enc_val_left = 0;
 
-//  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
-  if(flg == 1){
-//    kakunin1 = deff_deg * pGainRight - glOmega * iGainRight + (Yref-Ycur) * dGainRight;
-//    kakunin2 = -deff_deg * pGainLeft + glOmega * iGainLeft + (Yref-Ycur) * dGainLeft;
-//    kakunin1 = -deff_deg * pGainRight;
-//    kakunin2 = +deff_deg * pGainLeft;
-
-      kakunin1 = glOmega * pGainRight + (Yref-Ycur) * iGainRight;
-      kakunin2 = glOmega * pGainLeft + (Yref-Ycur) * iGainLeft;
-    if(kakunin1 > 256){
-      kakunin1 = 256;
-    }
-    else if(kakunin1 <= 0){
-      kakunin1 = 1;
-    }
-    if(kakunin2 > 256){
-      kakunin2 = 256;
-    }
-    else if(kakunin2 <= 0){
-      kakunin2 = 1;
-    }
-  }
-  flg = 0;
-  if(Yref <= Ycur){
-    Yref += 100;
-  }
-//Serial.println(kakunin2);
-  Serial.println(glOmega);
 }
 
-void goStraight(int PWM_Right, int PWM_Left){
+void motorControl(int PWM_Right, int PWM_Left){
   int i;
-  int motor_Right = PWM_MAX/PWM_Right, motor_Left = PWM_MAX/PWM_Left;
+  int duty_Right = PWM_MAX/PWM_Right, duty_Left = PWM_MAX/PWM_Left;
   for(i = 1; i <= PWM_MAX; i++){
-    if((i%motor_Right) == 0){
+    if((i%duty_Right) == 0){
       PORTG |= B00100000;
 //      digitalWrite(4,HIGH);
     }
@@ -165,7 +132,7 @@ void goStraight(int PWM_Right, int PWM_Left){
 //      digitalWrite(4,LOW);
     }
 
-    if((i%motor_Left) == 0){
+    if((i%duty_Left) == 0){
       PORTH |= B00001000;
 //      digitalWrite(6, HIGH);
     }
@@ -181,11 +148,72 @@ void motorStop(){
   PORTH &= ~B00001000;
 }
 
-void loop(){
-  if(Ycur>-50000.00){
-    goStraight(kakunin1, kakunin2);
+void goStraight(){
+  double Xref = 0.00, Yref = 100.00;
+  double deg;
+  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
+  deg *= 1.123;                               //miracle magic number
+//    Serial.println(deg);
+
+
+//  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
+  if(flg == 1){
+//    kakunin1 = -deff_deg * pGainRight;
+//    kakunin2 = +deff_deg * pGainLeft;
+
+      PWM_Right = glOmega * PGAIN_R + (Yref-Ycur) * IGAIN_R;
+      PWM_Left = glOmega * PGAIN_L + (Yref-Ycur) * IGAIN_L;
+    if(PWM_Right > 256){
+      PWM_Right = 256;
+    }
+    else if(PWM_Right <= 0){
+      PWM_Right = 1;
+    }
+    if(PWM_Left > 256){
+      PWM_Left = 256;
+    }
+    else if(PWM_Left <= 0){
+      PWM_Left = 1;
+    }
+
+  }
+  motorControl(PWM_Right, PWM_Left);
+  flg = 0;
+  if(Yref <= Ycur){
+    Yref += 100;
+  }
+//Serial.println(kakunin2);
+}
+void lineTrace(){
+  int Ana0, Ana1, Ana2, Ana3;
+  Ana0 = analogRead(A0);
+  Ana1 = analogRead(A1);
+  Ana2 = analogRead(A2);
+  Ana3 = analogRead(A3);
+
+  if(Ana1 < 100){
+    PWM_Right -= 40;
+    PWM_Left += 20;
+    motorControl(PWM_Right, PWM_Left);
+  }
+  else if(Ana2 < 100){
+    PWM_Right += 20;
+    PWM_Left -= 40;
+    motorControl(PWM_Right, PWM_Left);
   }
   else{
-    motorStop();
+    goStraight();
   }
+
+Serial.print(Ana0);
+space();
+Serial.print(Ana1);
+space();
+Serial.print(Ana2);
+space();
+Serial.println(Ana3);
+}
+
+void loop(){
+  lineTrace();
 }
