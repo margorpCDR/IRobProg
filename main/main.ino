@@ -55,10 +55,10 @@ void updateEncoder1(){
   uint8_t encoded  = (enc_prev_right << 2) | ab;
 
   if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    enc_val_right ++;
+    enc_val_right --;
   }
   else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000){
-    enc_val_right --;
+    enc_val_right ++;
   }
 
   enc_prev_right = ab;
@@ -86,10 +86,10 @@ void updateEncoder2(){
   uint8_t encoded  = (enc_prev_left << 2) | cd;
 
   if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    enc_val_left ++;
+    enc_val_left --;
   }
   else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000){
-    enc_val_left --;
+    enc_val_left ++;
   }
 
   enc_prev_left = cd;
@@ -97,14 +97,16 @@ void updateEncoder2(){
 }
 
 void speedControl(){
-  double Xref = 0.00, Yref = 10000000.00;
+  double Xref = 0.00, Yref = 100.00;
   double glOmega = 0.00, glVelocity = 0.00, glRho = 0.00, glTheta = 0.00;
-  double rad = 0.00, deg = 0.00, deff_deg = 0.00, velocity = 0.00;
-  double output, pGain = 1.1, iGain = 0.00001;
+  double rad = 0.00, deg = 0.00, deff_deg = 0.00;
+  double pGainRight = 4.00, iGainRight = 0.30, dGainRight = 0.0;
+  double pGainLeft = 2.55, iGainLeft = 0.20, dGainLeft = 0.0;
 
   glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
   glDeg += glOmega;
   deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
+  deg *= 1.125;                               //miracle magic number
 
 /*==============================================================================
 from ball-zone to goal => clockwise
@@ -120,16 +122,34 @@ opposite               => CCW
   enc_val_right = 0;
   enc_val_left = 0;
 
-  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
+//  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
   if(flg == 1){
-    kakunin1 += deff_deg * pGain + (SPEED_RIGHT_REF-velocity) * iGain;
-    kakunin2 += -deff_deg * pGain + (SPEED_RIGHT_REF-velocity) * iGain;
-//    kakunin1 += deff_deg * pGain;
-//    kakunin2 += -deff_deg * pGain;
+//    kakunin1 = deff_deg * pGainRight - glOmega * iGainRight + (Yref-Ycur) * dGainRight;
+//    kakunin2 = -deff_deg * pGainLeft + glOmega * iGainLeft + (Yref-Ycur) * dGainLeft;
+//    kakunin1 = -deff_deg * pGainRight;
+//    kakunin2 = +deff_deg * pGainLeft;
+
+      kakunin1 = glOmega * pGainRight + (Yref-Ycur) * iGainRight;
+      kakunin2 = glOmega * pGainLeft + (Yref-Ycur) * iGainLeft;
+    if(kakunin1 > 256){
+      kakunin1 = 256;
+    }
+    else if(kakunin1 <= 0){
+      kakunin1 = 1;
+    }
+    if(kakunin2 > 256){
+      kakunin2 = 256;
+    }
+    else if(kakunin2 <= 0){
+      kakunin2 = 1;
+    }
   }
   flg = 0;
-
-  Serial.println(deg);
+  if(Yref <= Ycur){
+    Yref += 100;
+  }
+//Serial.println(kakunin2);
+  Serial.println(glOmega);
 }
 
 void goStraight(int PWM_Right, int PWM_Left){
@@ -156,15 +176,16 @@ void goStraight(int PWM_Right, int PWM_Left){
   }
 }
 
+void motorStop(){
+  PORTG &= ~B00100000;
+  PORTH &= ~B00001000;
+}
 
 void loop(){
-/*
-  if(Ycur>-500.00){
+  if(Ycur>-50000.00){
     goStraight(kakunin1, kakunin2);
   }
   else{
-    goStraight(1, 1);
+    motorStop();
   }
-*/
-goStraight(kakunin1, kakunin2);
 }
