@@ -1,0 +1,100 @@
+#include "mbed.h"
+#include "Motor.h"
+#include "QEI.h"
+#define  TARGET_THETA  410*2*3.1415/1023
+
+BusOut led(LED1, LED2, LED3, LED4);	//基板LED用IO設定
+AnalogIn pen(P0_11);									//ポテンショメータ用IO設定
+
+Ticker pen_control;								//台車の速度制御用タイマー割り込み
+
+Serial pc(USBTX, USBRX);						//デバッグ用シリアル通信
+
+BusIn in(GPIO1, GPIO2, GPIO3, GPIO4);
+
+//モータ制御用オブジェクト
+Motor motor_left(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_PWM);		//左モータ
+Motor motor_right(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_PWM);	//右モータ
+
+//***************　台車の速度制御　ここから　***************//
+int pen_val;												//振子についているポテンショメータのAD値格納用
+//int goal_pen_val = 815;				//振子の目標値(AD値)
+
+double speed;             //車体の速度　，　前回の車体の速度
+//double pen_kp = 0.025;							//ゲイン設定用変数
+double x0,T = 0.001, theta, duty_ratio_right, duty_ratio_left, e, ed, ei=0, e0=0, x, dx, dtheta, theta0;
+int pen_diff;		//振子の目標値とポテンショメータのAD値の差分格納用
+
+int pen_v, pen_t;
+double I = 3.1415;
+double KP = 500, KI = 400, KD = 0.0001;
+double ADV_TO_RAD = 2*I/1023;
+
+void pen_control_handler(){
+	pen_val = pen.read_u16()>>6;					//ADCを通してポテンショメータのAD値を取得
+  pen_val = pen_val;
+	//搭載されているLPC1114のADCは10bitのため6bit右にシフト
+	
+	theta = pen_val*ADV_TO_RAD;
+	
+	e = TARGET_THETA - theta;
+	ed = (e - e0) / T;
+	ei += e * T;
+	e0 = e;
+	
+	if(ei  > 10)ei = 10;
+	if(ei  < -10)ei = -10;
+	
+	speed = -((e * KP + ei * KI + ed * KD)/10);
+	
+	/*
+	pen_diff = (double)(goal_pen_val - pen_val) ;		//振子の目標値とポテンショメータのAD値の差分を計算して格納
+	
+  speed = (pen_diff * pen_kp);					//P制御  ←PID制御に変えればOK
+	
+	*/
+	//速度指令値の頭打ち処理
+	if(speed > 1.0) speed = 1.0;
+	if(speed < -1.0) speed = -1.0;                                    
+	
+	//**** 速度指令値によって発行するLEDを変える ****//
+		if(speed > 0.8 ){
+			led = 8;
+		}else if(speed <= 0.8 && speed >= 0){
+			led = 4;
+		}else if(speed < 0 && speed >= -0.8){
+			led = 2;
+		}else if(speed < -0.8){
+			led = 1;
+		}         
+	//**** 速度指令値によって発行するLEDを変える　ここまで ****//
+	
+//	last_speed = speed;										//前回の速度指令を格納     
+	
+		theta = e;
+		
+	//計算結果をモータの速度指令に反映
+	motor_left =  speed;
+	motor_right = -speed;
+
+}
+//***************　台車の速度制御　ここまで　***************//
+
+//***************　main関数　ここから　***************//
+int main() {
+
+	//モータの最大速度を設定
+	motor_left.setMaxRatio(0.8);
+	motor_right.setMaxRatio(0.8);
+	
+	pen_control.attach(&pen_control_handler, T);		//台車の速度制御用のタイマー関数を設定
+	
+	led = 1;		//LEDの値を設定　動作確認用
+	
+//	wait(1.0);		//なんとなく1秒待つ
+	
+	while(1) {		//無限ループ
+		printf("pen:%d speed:%2.2f \r\n", pen_val ,speed);
+		wait(0.08);
+	}
+}
