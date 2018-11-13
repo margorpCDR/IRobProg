@@ -8,11 +8,14 @@
 volatile int enc_val_right = 0, enc_val_left = 0;
 volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
 double glDeg = 0.00;
-long distance_right = 0.00, distance_left = 0.00;
+double  Xcur=0.00, Ycur=0.00;
+double distance_right = 0.00, distance_left = 0.00;
 
-double kakunin=0;
+double kakunin1=0.00, kakunin2=0.00;
 
-
+void space(){
+  Serial.print("  ");
+}
 
 void setup() {
   parameters();
@@ -91,43 +94,51 @@ void updateEncoder2(){
 }
 
 void odometry(){
-  double Xcur=0.00, Ycur=0.00, Xref = 0.00, Yref = 0.00;
+  double Xref = 0.00, Yref = 0.00;
   double glOmega = 0.00, glVelocity = 0.00, glRho = 0.00, glTheta = 0.00;
   double rad = 0.00, deg = 0.00, deff_deg = 0.00, velocity = 0.00;
-  double gain;
+  double output, pGain = 0.00, iGain = 0.00;
 
   glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
-  glVelocity = (enc_val_right + enc_val_left) / 2;
-//  glRho = glOmega / glVelocity;
+  glDeg += glOmega;
+  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
 
-  glTheta = glOmega;
-  rad = glTheta * PULSE_TO_MM;
-  velocity = glVelocity * PULSE_TO_MM;
+/*==============================================================================
+from ball-zone to goal => clockwise
+opposite               => CCW
+  -> countermeasure of overflow
+================================================================================*/
 
-  Xcur += velocity * cos(rad);         //x座標
-  Ycur += velocity * sin(rad);         //y座標
-  glDeg += glTheta;
+  glVelocity = (enc_val_right + enc_val_left) / 2 * PULSE_TO_MM;
+  rad = glDeg * PULSE_TO_MM / TREAD;
+  Xcur += glVelocity * sin(rad);         //x-cordinate => "sin"
+  Ycur += glVelocity * cos(rad);         //y-cordinate => "cos"
 
-
-  distance_right += enc_val_right;    //後でPULSE_TO_MM計算
-  distance_left += enc_val_left;
   enc_val_right = 0;
   enc_val_left = 0;
 
-  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
-  Serial.println(deg);
+  Serial.println(Ycur);
 
   deff_deg = glDeg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)));
-  gain = deff_deg * VPGAIN_r + (SPEED_RIGHT_REF-velocity) * VIGAIN_r;
+  output = deff_deg * pGain + (SPEED_RIGHT_REF-velocity) * iGain;
 
 }
 
 void loop(){
 
-  if(abs(glDeg)*PULSE_TO_MM/TREAD*180/PI<=90){
-    analogWrite(4,0);
-    analogWrite(5,30);
-    analogWrite(6,30);
+if(glDeg<0){
+  kakunin1--;
+  kakunin2++;
+}
+else if(glDeg>0){
+  kakunin1++;
+  kakunin2--;
+}
+
+  if(abs(Ycur)<500.00){
+    analogWrite(4,30+kakunin2);
+    analogWrite(5,0);
+    analogWrite(6,30+kakunin1);
     analogWrite(7,0);
   }
   else{
