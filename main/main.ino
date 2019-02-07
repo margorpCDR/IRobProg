@@ -1,4 +1,4 @@
-#include<math.h>
+#include <math.h>
 #include <FlexiTimer2.h>
 #include <parameters.h>
 
@@ -7,15 +7,15 @@
 
 volatile int enc_val_right = 0, enc_val_left = 0;
 volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
-int PWM_Right, PWM_Left;
-double glOmega = 0.00, glDeg = 0.00;
-double Xcur=0.00, Ycur=0.00;
+int speedRefRight = 50.00, speedRefLeft = 50.00;
+int PWM_Right = 35, PWM_Left = 30;
+double glDeg = 0.00;
+double Xcur = 0.00, Ycur = 0.00;
 double distance_right = 0.00, distance_left = 0.00;
 
-double kakunin1=35.00, kakunin2=30.00;
-int flg = 0;
+double kakunin1 = 1.00, kakunin2 = 30.00;
 
-void space(){
+void space() {
   Serial.print("  ");
 }
 
@@ -29,191 +29,207 @@ void setup() {
 
   FlexiTimer2::set(SPEEDCONTROL_TIME * 1000, odmetry);
   FlexiTimer2::start();
-  
+
   Serial.begin(9600);
 }
 
-
-void updateEncoder1(){
-//  uint8_t a = digitalRead(18);
-//  uint8_t b = digitalRead(19);
+void updateEncoder1() {
+  //  uint8_t a = digitalRead(18);
+  //  uint8_t b = digitalRead(19);
 
   uint8_t a, b;
-  if(PIND & _BV(PD3)){
+  if (PIND & _BV(PD3)) {
     a = HIGH;
   }
-  else{
+  else {
     a = LOW;
   }
-  if(PIND & _BV(PD2)){
+  if (PIND & _BV(PD2)) {
     b = HIGH;
   }
-  else{
+  else {
     b = LOW;
   }
 
   uint8_t ab = (a << 1) | b;
   uint8_t encoded  = (enc_prev_right << 2) | ab;
 
-  if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    enc_val_right --;
+  if (encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011) {
+    enc_val_left ++;
   }
-  else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000){
-    enc_val_right ++;
+  else if (encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
+    enc_val_left --;
   }
 
   enc_prev_right = ab;
-  flg = 1;
 }
 
-void updateEncoder2(){
-//  uint8_t c = digitalRead(20);
-//  uint8_t d = digitalRead(21);
+void updateEncoder2() {
+  //  uint8_t c = digitalRead(20);
+  //  uint8_t d = digitalRead(21);
   uint8_t c, d;
-  if(PIND & _BV(PD1)){
+  if (PIND & _BV(PD1)) {
     c = HIGH;
   }
-  else{
+  else {
     c = LOW;
   }
-  if(PIND & _BV(PD0)){
+  if (PIND & _BV(PD0)) {
     d = HIGH;
   }
-  else{
+  else {
     d = LOW;
   }
 
   uint8_t cd = (c << 1) | d;
   uint8_t encoded  = (enc_prev_left << 2) | cd;
 
-  if(encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011){
-    enc_val_left --;
+  if (encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011) {
+    enc_val_right ++;
   }
-  else if(encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000){
-    enc_val_left ++;
+  else if (encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
+    enc_val_right --;
   }
 
   enc_prev_left = cd;
-  flg = 1;
 }
 
-void odmetry(){
-  double glVelocity = 0.00;
+void motorControl() {
+  int i;
+  int duty_Right = PWM_MAX / PWM_Right, duty_Left = PWM_MAX / PWM_Left;
+
+  for (i = 1; i <= PWM_MAX; i++) {
+    if ((i % duty_Right) == 0) {
+      PORTE |= B00001000;
+      //      digitalWrite(5,HIGH);
+    }
+    else {
+      PORTE &= ~B0001000;
+      //      digitalWrite(5,LOW);
+    }
+
+    if ((i % duty_Left) == 0) {
+      PORTH |= B00010000;
+      //      digitalWrite(7, HIGH);
+    }
+    else {
+      PORTH &= ~B00010000;
+      //      digitalWrite(7, LOW);
+    }
+  }
+}
+
+void motorStop() {
+  PORTG &= ~B00100000;
+  PORTH &= ~B00001000;
+}
+
+double low_pass_filter(double val, double pre_val, double gamma) {                             //gammma 限界値に近ずけるための定数
+  return gamma * pre_val + (1 - gamma) * val;
+}
+
+void speedControl() {
+  double deg;
+  double speedRight = enc_val_right * PULSE_TO_MM / SPEEDCONTROL_TIME;
+  double speedLeft = enc_val_left * PULSE_TO_MM / SPEEDCONTROL_TIME;
+
+  double speedRight_lpf = 0.00, speedLeft_lpf = 0.00;
+  speedRight_lpf = low_pass_filter(speedRight, speedRight_lpf, 0.4);
+  speedLeft_lpf = low_pass_filter(speedLeft, speedLeft_lpf, 0.4);
+
+  double diffSpeedRight = speedRefRight - speedRight_lpf;
+  double diffSpeedLeft = speedRefLeft - speedLeft_lpf;
+
+    deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
+//    Serial.println(deg);
+  //  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
+
+//  PWM_Right = diffSpeedRight * PGAIN_R;
+//  PWM_Left = diffSpeedLeft * PGAIN_L;
+
+    PWM_Right = diffSpeedRight * PGAIN_R + (diffSpeedRight * MOTOR_TIME) * IGAIN_R + glDeg * DGAIN_R;
+    PWM_Left = diffSpeedLeft * PGAIN_L + (diffSpeedLeft * MOTOR_TIME) * IGAIN_L + glDeg * DGAIN_L;
+  if (PWM_Right > 256) {
+    PWM_Right = 256;
+  }
+  else if (PWM_Right <= 0) {
+    PWM_Right = 1;
+  }
+  if (PWM_Left > 256) {
+    PWM_Left = 256;
+  }
+  else if (PWM_Left <= 0) {
+    PWM_Left = 1;
+  }
+  /*
+    Serial.print(diffSpeedRight);
+    space();
+    Serial.println(PWM_Right);
+  */
+  motorControl();
+
+}
+
+void odmetry() {
+  double glOmega, glVelocity;
   double rad = 0.00;
 
   glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
   glDeg += glOmega;
-/*==============================================================================
-from ball-zone to goal => clockwise
-opposite               => CCW
-  -> countermeasure of overflow
-================================================================================*/
+  Serial.println(glDeg);
+
+  /*==============================================================================
+    from ball-zone to goal => clockwise
+    opposite               => CCW
+    -> countermeasure of overflow
+    ================================================================================*/
 
   glVelocity = (enc_val_right + enc_val_left) / 2 * PULSE_TO_MM;
   rad = glDeg * PULSE_TO_MM / TREAD;
   Xcur += glVelocity * sin(rad);         //x-cordinate => "sin"
   Ycur += glVelocity * cos(rad);         //y-cordinate => "cos"
 
+  speedControl();
+
   enc_val_right = 0;
   enc_val_left = 0;
-
 }
 
-void motorControl(int PWM_Right, int PWM_Left){
-  int i;
-  int duty_Right = PWM_MAX/PWM_Right, duty_Left = PWM_MAX/PWM_Left;
-  for(i = 1; i <= PWM_MAX; i++){
-    if((i%duty_Right) == 0){
-      PORTG |= B00100000;
-//      digitalWrite(4,HIGH);
-    }
-    else{
-      PORTG &= ~B00100000;
-//      digitalWrite(4,LOW);
-    }
-
-    if((i%duty_Left) == 0){
-      PORTH |= B00001000;
-//      digitalWrite(6, HIGH);
-    }
-    else{
-      PORTH &= ~B00001000;
-//      digitalWrite(6, LOW);
-    }
-  }
-}
-
-void motorStop(){
-  PORTG &= ~B00100000;
-  PORTH &= ~B00001000;
-}
-
-void goStraight(){
-  double Xref = 0.00, Yref = 100.00;
-  double deg;
-  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
-  deg *= 1.123;                               //miracle magic number
-//    Serial.println(deg);
-
-
-//  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
-  if(flg == 1){
-//    kakunin1 = -deff_deg * pGainRight;
-//    kakunin2 = +deff_deg * pGainLeft;
-
-      PWM_Right = glOmega * PGAIN_R + (Yref-Ycur) * IGAIN_R;
-      PWM_Left = glOmega * PGAIN_L + (Yref-Ycur) * IGAIN_L;
-    if(PWM_Right > 256){
-      PWM_Right = 256;
-    }
-    else if(PWM_Right <= 0){
-      PWM_Right = 1;
-    }
-    if(PWM_Left > 256){
-      PWM_Left = 256;
-    }
-    else if(PWM_Left <= 0){
-      PWM_Left = 1;
-    }
-
-  }
-  motorControl(PWM_Right, PWM_Left);
-  flg = 0;
-  if(Yref <= Ycur){
-    Yref += 100;
-  }
-//Serial.println(kakunin2);
-}
-void lineTrace(){
+void lineTrace() {
   int Ana0, Ana1, Ana2, Ana3;
   Ana0 = analogRead(A0);
   Ana1 = analogRead(A1);
   Ana2 = analogRead(A2);
   Ana3 = analogRead(A3);
 
-  if(Ana1 < 100){
+  if (Ana1 < 100) {
     PWM_Right -= 40;
     PWM_Left += 20;
-    motorControl(PWM_Right, PWM_Left);
   }
-  else if(Ana2 < 100){
+  else if (Ana2 < 100) {
     PWM_Right += 20;
     PWM_Left -= 40;
-    motorControl(PWM_Right, PWM_Left);
   }
-  else{
-    goStraight();
+  else {
+    speedRefRight = 100;
+    speedRefLeft = 100;
   }
+  speedControl();
 
-Serial.print(Ana0);
-space();
-Serial.print(Ana1);
-space();
-Serial.print(Ana2);
-space();
-Serial.println(Ana3);
+  Serial.print(Ana0);
+  space();
+  Serial.print(Ana1);
+  space();
+  Serial.print(Ana2);
+  space();
+  Serial.println(Ana3);
 }
 
-void loop(){
-  lineTrace();
+void loop() {
+
+  /*
+    Serial.print(PWM_Right);
+    space();
+    Serial.println(PWM_Left);
+  */
 }

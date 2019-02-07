@@ -118,7 +118,7 @@ void odometry(){
   Serial.println(deg);
 
   deff_deg = glDeg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)));
-  gain = deff_deg * VPGAIN_r + (SPEED_RIGHT_REF-velocity) * VIGAIN_r;
+//  gain = deff_deg * VPGAIN_r + (SPEED_RIGHT_REF-velocity) * VIGAIN_r;
 
 }
 

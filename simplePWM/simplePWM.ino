@@ -5,7 +5,7 @@ volatile long value1 = 0; //left
 volatile long value2 = 0;
 volatile uint8_t prev1 = 0;
 volatile uint8_t prev2 = 0;
-int Rspeed = 20, Lspeed = 20;
+int Rspeed = 50, Lspeed = 50;
 volatile int RLflg= 0;
 
 void updateEncoder1();
@@ -32,12 +32,12 @@ void setup() {
 }
 
 void loop() {
-  Serial.print(value1);
+  Serial.print(Rspeed);
   Serial.print("  ");
-  Serial.println(value2);
+  Serial.println(Lspeed);
 
 
-//  straight(value1, value2);
+  straight(value1, value2);
 }
 
 void updateEncoder1(){
