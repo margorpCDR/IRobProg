@@ -1,34 +1,14 @@
 #include <math.h>
 #include <FlexiTimer2.h>
-#include <parameters.h>
-
-#define MOTOR_TIME 0.2
-#define SPEEDCONTROL_TIME 0.01
-
-volatile int enc_val_right = 0, enc_val_left = 0;
-volatile uint8_t enc_prev_right = 0, enc_prev_left = 0;
-int speedRefRight = 50.00, speedRefLeft = 50.00;
-int PWM_Right = 35, PWM_Left = 30;
-double glDeg = 0.00;
-double Xcur = 0.00, Ycur = 0.00;
-double distance_right = 0.00, distance_left = 0.00;
-
-double kakunin1 = 1.00, kakunin2 = 30.00;
-
-void space() {
-  Serial.print("  ");
-}
 
 void setup() {
-  parameters();
-
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
   attachInterrupt(3, updateEncoder2, CHANGE);
   attachInterrupt(2, updateEncoder2, CHANGE);
 
-  FlexiTimer2::set(SPEEDCONTROL_TIME * 1000, odmetry);
-  FlexiTimer2::start();
+//  FlexiTimer2::set(SPEEDCONTROL_TIME * 1000, odmetry);
+//  FlexiTimer2::start();
 
   Serial.begin(9600);
 }
@@ -94,6 +74,96 @@ void updateEncoder2() {
   enc_prev_left = cd;
 }
 
+void straight(){
+
+}
+
+void lineCount(){
+
+}
+
+void lineTrace() {
+  int Ana0, Ana1, Ana2, Ana3;
+  Ana0 = analogRead(A0);
+  Ana1 = analogRead(A1);
+  Ana2 = analogRead(A2);
+  Ana3 = analogRead(A3);
+
+  if (Ana1 < 100) {
+    PWM_Right -= 40;
+    PWM_Left += 20;
+  }
+  else if (Ana2 < 100) {
+    PWM_Right += 20;
+    PWM_Left -= 40;
+  }
+  else {
+    speedRefRight = 100;
+    speedRefLeft = 100;
+  }
+  speedControl();
+/*
+  Serial.print(Ana0);
+  Serial.print("	");
+  Serial.print(Ana1);
+  Serial.print("	");
+  Serial.print(Ana2);
+  Serial.print("	");
+  Serial.println(Ana3);
+  */
+}
+
+void searchBall(){
+
+}
+
+void catchMotion(){
+
+}
+
+void turnDeg(int deg){
+
+}
+
+void shootMotion(){
+
+}
+
+void initialMotion(){
+
+}
+
+void mvArea(int MaxLineCnt){
+
+}
+
+void collectBall(){
+
+}
+
+void getScore(){
+
+}
+
+void odmetry() {
+  double glOmega, glVelocity;
+  double rad = 0.00;
+
+  glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
+  glDeg += glOmega;
+  Serial.println(glDeg);
+
+  glVelocity = (enc_val_right + enc_val_left) / 2 * PULSE_TO_MM;
+  rad = glDeg * PULSE_TO_MM / TREAD;
+  Xcur += glVelocity * sin(rad);         //x-cordinate => "sin"
+  Ycur += glVelocity * cos(rad);         //y-cordinate => "cos"
+
+  speedControl();
+
+  enc_val_right = 0;
+  enc_val_left = 0;
+}
+
 void motorControl() {
   int i;
   int duty_Right = PWM_MAX / PWM_Right, duty_Left = PWM_MAX / PWM_Left;
@@ -124,6 +194,7 @@ void motorStop() {
   PORTH &= ~B00001000;
 }
 
+/*
 double low_pass_filter(double val, double pre_val, double gamma) {                             //gammma 限界値に近ずけるための定数
   return gamma * pre_val + (1 - gamma) * val;
 }
@@ -140,15 +211,15 @@ void speedControl() {
   double diffSpeedRight = speedRefRight - speedRight_lpf;
   double diffSpeedLeft = speedRefLeft - speedLeft_lpf;
 
-    deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
-//    Serial.println(deg);
-  //  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
+  deg = glDeg * PULSE_TO_MM / TREAD * 180.00 / PI;
+//  Serial.println(deg);
+//  deff_deg = deg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)))*180/PI;
 
 //  PWM_Right = diffSpeedRight * PGAIN_R;
 //  PWM_Left = diffSpeedLeft * PGAIN_L;
 
-    PWM_Right = diffSpeedRight * PGAIN_R + (diffSpeedRight * MOTOR_TIME) * IGAIN_R + glDeg * DGAIN_R;
-    PWM_Left = diffSpeedLeft * PGAIN_L + (diffSpeedLeft * MOTOR_TIME) * IGAIN_L + glDeg * DGAIN_L;
+  PWM_Right = diffSpeedRight * PGAIN_R + (diffSpeedRight * MOTOR_TIME) * IGAIN_R + glDeg * DGAIN_R;
+  PWM_Left = diffSpeedLeft * PGAIN_L + (diffSpeedLeft * MOTOR_TIME) * IGAIN_L + glDeg * DGAIN_L;
   if (PWM_Right > 256) {
     PWM_Right = 256;
   }
@@ -161,75 +232,18 @@ void speedControl() {
   else if (PWM_Left <= 0) {
     PWM_Left = 1;
   }
-  /*
-    Serial.print(diffSpeedRight);
-    space();
-    Serial.println(PWM_Right);
-  */
+
+  Serial.print(diffSpeedRight);
+  Serial.print("	");
+  Serial.println(PWM_Right);
+
   motorControl();
 
 }
-
-void odmetry() {
-  double glOmega, glVelocity;
-  double rad = 0.00;
-
-  glOmega = enc_val_right - enc_val_left;     //for omega 誤差(?)出るからパルス=>radは後で
-  glDeg += glOmega;
-  Serial.println(glDeg);
-
-  /*==============================================================================
-    from ball-zone to goal => clockwise
-    opposite               => CCW
-    -> countermeasure of overflow
-    ================================================================================*/
-
-  glVelocity = (enc_val_right + enc_val_left) / 2 * PULSE_TO_MM;
-  rad = glDeg * PULSE_TO_MM / TREAD;
-  Xcur += glVelocity * sin(rad);         //x-cordinate => "sin"
-  Ycur += glVelocity * cos(rad);         //y-cordinate => "cos"
-
-  speedControl();
-
-  enc_val_right = 0;
-  enc_val_left = 0;
-}
-
-void lineTrace() {
-  int Ana0, Ana1, Ana2, Ana3;
-  Ana0 = analogRead(A0);
-  Ana1 = analogRead(A1);
-  Ana2 = analogRead(A2);
-  Ana3 = analogRead(A3);
-
-  if (Ana1 < 100) {
-    PWM_Right -= 40;
-    PWM_Left += 20;
-  }
-  else if (Ana2 < 100) {
-    PWM_Right += 20;
-    PWM_Left -= 40;
-  }
-  else {
-    speedRefRight = 100;
-    speedRefLeft = 100;
-  }
-  speedControl();
-
-  Serial.print(Ana0);
-  space();
-  Serial.print(Ana1);
-  space();
-  Serial.print(Ana2);
-  space();
-  Serial.println(Ana3);
-}
+*/
 
 void loop() {
 
-  /*
-    Serial.print(PWM_Right);
-    space();
-    Serial.println(PWM_Left);
-  */
+
+
 }
