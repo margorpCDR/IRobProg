@@ -120,7 +120,6 @@ opposite               => CCW
   Serial.println(Ycur);
 
   deff_deg = glDeg + acos((Yref-Ycur)/sqrt((Xref-Xcur)*(Xref-Xcur)+(Yref-Ycur)*(Yref-Ycur)));
-  output = deff_deg * pGain + (SPEED_RIGHT_REF-velocity) * iGain;
 
 }
 
