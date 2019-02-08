@@ -1,6 +1,12 @@
 #include <math.h>
 #include <FlexiTimer2.h>
 
+
+
+int lineCount = 0;
+int MaxLineCount = 4;
+short flg = 0, preflg = 0;
+
 void setup() {
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
@@ -79,7 +85,16 @@ void straight(){
 }
 
 void lineCount(){
+  if(difiralRead(A0) == HIGH || digitalread(A4) == HIGH){
+    flg = 1;
+  }
+  else{
+    flg = 0;
+  }
 
+  if(flg - preflg == -1) lineCount++;
+
+  preflg = flg;
 }
 
 void lineTrace() {
