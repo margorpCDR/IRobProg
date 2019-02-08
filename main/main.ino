@@ -8,6 +8,16 @@ int MaxLineCount = 4;
 short flg = 0, preflg = 0;
 
 void setup() {
+// No.4 pin-setting for motor PWM
+  TCCR0A = B10100011;
+  TCCR0B = B00001011;
+// No.5
+  TCCR3A = B10101011;
+  TCCR3B = B00011001;
+// No.6,7
+  TCCR4A = B10101011;
+  TCCR4B = B00011001;
+
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
   attachInterrupt(3, updateEncoder2, CHANGE);
@@ -80,12 +90,34 @@ void updateEncoder2() {
   enc_prev_left = cd;
 }
 
+void motorR(int PWM){
+  if(PWM >= 0){
+    OC0B = PWM; //0~255(No.4pin)
+    OC3A = 0;   //0~65536i => 0~255(No.5pin)
+  }
+  else{
+    OC0B = 0;     //0~255(No.4pin)
+    OC3A = -PWM; //0~65536i => 0~255(No.5pin)
+  }
+}
+
+void motorL(int PWM){
+  if(PWM >= 0){
+    OC4A = PWM * 256; //0~65536 => 0~255(No.6pin)
+    OC4B = 0;         //0~65536 => 0~255(No.7pin)
+  }
+  else{
+    OC4A = 0;         //0~65536 => 0~255(No.6pin)
+    OC4B = PWM * 256; //0~65536 => 0~255(No.7pin)
+  }
+}
+
 void straight(){
 
 }
 
 void lineCount(){
-  if(difiralRead(A0) == HIGH || digitalread(A4) == HIGH){
+  if(digiralRead(A0) == HIGH || digitalread(A4) == HIGH){
     flg = 1;
   }
   else{
