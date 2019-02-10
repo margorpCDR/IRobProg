@@ -92,7 +92,7 @@ void updateEncoder2() {
 
   enc_prev_left = cd;
 }
-
+/*
 void motorR(int PWM){
   if(PWM >= 0){
     OC0B = PWM; //0~255(No.4pin)
@@ -100,7 +100,7 @@ void motorR(int PWM){
   }
   else{
     OC0B = 0;    //0~255(No.4pin)
-    OC3A = -PWM; //0~65536i => 0~255(No.5pin)
+    OC3A = -PWM * 256; //0~65536i => 0~255(No.5pin)
   }
 }
 
@@ -114,13 +114,13 @@ void motorL(int PWM){
     OC4B = -PWM * 256;  //0~65536 => 0~255(No.7pin)
   }
 }
-
+*/
 void straight(){
 
 }
 
 void lineCount(){
-  if(digiralRead(A0) == HIGH || digitalread(A4) == HIGH){
+  if(digitalRead(A0) == HIGH || digitalRead(A4) == HIGH){
     flg = 1;
   }
   else{
@@ -132,6 +132,7 @@ void lineCount(){
   preflg = flg;
 }
 
+/*
 void lineTrace() {
   int Ana0, Ana1, Ana2, Ana3;
   Ana0 = analogRead(A0);
@@ -152,7 +153,7 @@ void lineTrace() {
     speedRefLeft = 100;
   }
   speedControl();
-/*
+
   Serial.print(Ana0);
   Serial.print("	");
   Serial.print(Ana1);
@@ -160,8 +161,9 @@ void lineTrace() {
   Serial.print(Ana2);
   Serial.print("	");
   Serial.println(Ana3);
-  */
+
 }
+*/
 
 void searchBall(){
 
@@ -195,6 +197,7 @@ void getScore(){
 
 }
 
+/*
 void odmetry() {
   double glOmega, glVelocity;
   double rad = 0.00;
@@ -213,7 +216,9 @@ void odmetry() {
   enc_val_right = 0;
   enc_val_left = 0;
 }
+*/
 
+/*
 void motorControl() {
   int i;
   int duty_Right = PWM_MAX / PWM_Right, duty_Left = PWM_MAX / PWM_Left;
@@ -238,6 +243,9 @@ void motorControl() {
     }
   }
 }
+
+*/
+
 
 void motorStop() {
   PORTG &= ~B00100000;
