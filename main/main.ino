@@ -92,29 +92,29 @@ void updateEncoder2() {
 
   enc_prev_left = cd;
 }
-/*
+
 void motorR(int PWM){
   if(PWM >= 0){
-    OC0B = PWM; //0~255(No.4pin)
-    OC3A = 0;   //0~65536i => 0~255(No.5pin)
+    OCR0B = PWM; //0~255(No.4pin)
+    OCR3A = 0;   //0~65536i => 0~255(No.5pin)
   }
   else{
-    OC0B = 0;    //0~255(No.4pin)
-    OC3A = -PWM * 256; //0~65536i => 0~255(No.5pin)
+    OCR0B = 0;    //0~255(No.4pin)
+    OCR3A = -PWM * 256; //0~65536i => 0~255(No.5pin)
   }
 }
 
 void motorL(int PWM){
   if(PWM >= 0){
-    OC4A = PWM * 256;    //0~65536 => 0~255(No.6pin)
-    OC4B = 0;            //0~65536 => 0~255(No.7pin)
+    OCR4A = PWM * 256;    //0~65536 => 0~255(No.6pin)
+    OCR4B = 0;            //0~65536 => 0~255(No.7pin)
   }
   else{
-    OC4A = 0;           //0~65536 => 0~255(No.6pin)
-    OC4B = -PWM * 256;  //0~65536 => 0~255(No.7pin)
+    OCR4A = 0;           //0~65536 => 0~255(No.6pin)
+    OCR4B = -PWM * 256;  //0~65536 => 0~255(No.7pin)
   }
 }
-*/
+
 void straight(){
 
 }
