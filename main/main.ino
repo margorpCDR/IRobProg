@@ -2,7 +2,6 @@
 #include <FlexiTimer2.h>
 
 
-
 int lineCounter = 0;		    //linecount
 int MaxLineCount = 4;
 short flg = 0, preflg = 0;
@@ -11,13 +10,10 @@ volatile int enc_val_left = 0, enc_val_right = 0;	 //encoder
 volatile uint8_t enc_prev_left = 0, enc_prev_right = 0;
 
 void setup() {
-// No.4 pin-setting for motor PWM
-  TCCR0A = B10100011;
-  TCCR0B = B00001011;
-// No.5
+// No.5 pin-setting for motor PWM
   TCCR3A = B10101011;
   TCCR3B = B00011001;
-// No.6,7
+// No.6,7,8
   TCCR4A = B10101011;
   TCCR4B = B00011001;
 
@@ -95,23 +91,23 @@ void updateEncoder2() {
 
 void motorR(int PWM){
   if(PWM >= 0){
-    OCR0B = PWM; //0~255(No.4pin)
-    OCR3A = 0;   //0~65536i => 0~255(No.5pin)
+    OCR3A = PWM * 256;  //0~65536 => 0~255(No.5pin)
+    OCR4A = 0;          //0~65536 => 0~255(No.6pin)
   }
   else{
-    OCR0B = 0;    //0~255(No.4pin)
-    OCR3A = -PWM * 256; //0~65536i => 0~255(No.5pin)
+    OCR3A = 0;          //0~65536 => 0~255(No.5pin)
+    OCR4A = -PWM * 256; //0~65536 => 0~255(No.6pin)
   }
 }
 
 void motorL(int PWM){
   if(PWM >= 0){
-    OCR4A = PWM * 256;    //0~65536 => 0~255(No.6pin)
-    OCR4B = 0;            //0~65536 => 0~255(No.7pin)
+    OCR4B = PWM * 256;  //0~65536 => 0~255(No.7pin)
+    OCR4C = 0;          //0~65536 => 0~255(No.8pin)
   }
   else{
-    OCR4A = 0;           //0~65536 => 0~255(No.6pin)
-    OCR4B = -PWM * 256;  //0~65536 => 0~255(No.7pin)
+    OCR4B = 0;          //0~65536 => 0~255(No.7pin)
+    OCR4C = -PWM * 256; //0~65536 => 0~255(No.8pin)
   }
 }
 
