@@ -3,9 +3,12 @@
 
 
 
-int lineCounter = 0;
+int lineCounter = 0;		    //linecount
 int MaxLineCount = 4;
 short flg = 0, preflg = 0;
+
+volatile int enc_val_left = 0, enc_val_right = 0;	 //encoder
+volatile uint8_t enc_prev_left = 0, enc_prev_right = 0;
 
 void setup() {
 // No.4 pin-setting for motor PWM
@@ -34,13 +37,13 @@ void updateEncoder1() {
   //  uint8_t b = digitalRead(19);
 
   uint8_t a, b;
-  if (PIND & _BV(PD3)) {
+  if (PIND & _BV(PD2)) {
     a = HIGH;
   }
   else {
     a = LOW;
   }
-  if (PIND & _BV(PD2)) {
+  if (PIND & _BV(PD3)) {
     b = HIGH;
   }
   else {
@@ -48,29 +51,29 @@ void updateEncoder1() {
   }
 
   uint8_t ab = (a << 1) | b;
-  uint8_t encoded  = (enc_prev_right << 2) | ab;
+  uint8_t encoded  = (enc_prev_left << 2) | ab;
 
   if (encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011) {
-    enc_val_left ++;
+    enc_val_right ++;
   }
   else if (encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
-    enc_val_left --;
+    enc_val_right --;
   }
 
   enc_prev_right = ab;
 }
 
 void updateEncoder2() {
-  //  uint8_t c = digitalRead(20);
-  //  uint8_t d = digitalRead(21);
+  //  uint8_t c = digitalRead(2);
+  //  uint8_t d = digitalRead(3);
   uint8_t c, d;
-  if (PIND & _BV(PD1)) {
+  if (PIND & _BV(PE5)) {
     c = HIGH;
   }
   else {
     c = LOW;
   }
-  if (PIND & _BV(PD0)) {
+  if (PIND & _BV(PE4)) {
     d = HIGH;
   }
   else {
@@ -81,10 +84,10 @@ void updateEncoder2() {
   uint8_t encoded  = (enc_prev_left << 2) | cd;
 
   if (encoded == 0b1101 || encoded == 0b0100 || encoded == 0b0010 || encoded == 0b1011) {
-    enc_val_right ++;
+    enc_val_left ++;
   }
   else if (encoded == 0b1110 || encoded == 0b0111 || encoded == 0b0001 || encoded == 0b1000) {
-    enc_val_right --;
+    enc_val_left --;
   }
 
   enc_prev_left = cd;
