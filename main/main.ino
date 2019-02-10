@@ -1,5 +1,7 @@
 #include <math.h>
 #include <FlexiTimer2.h>
+#include <parameters.h>
+
 
 
 int lineCounter = 0;		    //linecount
@@ -10,6 +12,7 @@ volatile int enc_val_left = 0, enc_val_right = 0;	 //encoder
 volatile uint8_t enc_prev_left = 0, enc_prev_right = 0;
 
 void setup() {
+  parameters();
 // No.5 pin-setting for motor PWM
   TCCR3A = B10101011;
   TCCR3B = B00011001;
