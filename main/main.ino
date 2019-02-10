@@ -14,11 +14,11 @@ volatile uint8_t enc_prev_left = 0, enc_prev_right = 0;
 void setup() {
   parameters();
 // No.5 pin-setting for motor PWM
-  TCCR3A = B10101011;
-  TCCR3B = B00011001;
+  TCCR3A = B10101001;
+  TCCR3B = B00001101;
 // No.6,7,8
-  TCCR4A = B10101011;
-  TCCR4B = B00011001;
+  TCCR4A = B10101001;
+  TCCR4B = B00001101;
 
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
@@ -94,23 +94,23 @@ void updateEncoder2() {
 
 void motorR(int PWM){
   if(PWM >= 0){
-    OCR3A = PWM * 256;  //0~65536 => 0~255(No.5pin)
-    OCR4A = 0;          //0~65536 => 0~255(No.6pin)
+    OCR3A = PWM;  //0~255(No.5pin)
+    OCR4A = 0;    //0~255(No.6pin)
   }
   else{
-    OCR3A = 0;          //0~65536 => 0~255(No.5pin)
-    OCR4A = -PWM * 256; //0~65536 => 0~255(No.6pin)
+    OCR3A = 0;    //0~255(No.5pin)
+    OCR4A = -PWM; //0~255(No.6pin)
   }
 }
 
 void motorL(int PWM){
   if(PWM >= 0){
-    OCR4B = PWM * 256;  //0~65536 => 0~255(No.7pin)
-    OCR4C = 0;          //0~65536 => 0~255(No.8pin)
+    OCR4B = PWM;  //0~255(No.7pin)
+    OCR4C = 0;    //0~255(No.8pin)
   }
   else{
-    OCR4B = 0;          //0~65536 => 0~255(No.7pin)
-    OCR4C = -PWM * 256; //0~65536 => 0~255(No.8pin)
+    OCR4B = 0;    //0~255(No.7pin)
+    OCR4C = -PWM; //0~255(No.8pin)
   }
 }
 
