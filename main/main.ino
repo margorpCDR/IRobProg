@@ -15,10 +15,10 @@ void setup() {
   parameters();
 // No.5 pin-setting for motor PWM
   TCCR3A = B10101001;
-  TCCR3B = B00001101;
+  TCCR3B = B00001011;
 // No.6,7,8
   TCCR4A = B10101001;
-  TCCR4B = B00001101;
+  TCCR4B = B00001011;
 
   attachInterrupt(5, updateEncoder1, CHANGE);
   attachInterrupt(4, updateEncoder1, CHANGE);
