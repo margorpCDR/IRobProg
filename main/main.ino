@@ -3,7 +3,7 @@
 
 
 
-int lineCount = 0;
+int lineCounter = 0;
 int MaxLineCount = 4;
 short flg = 0, preflg = 0;
 
@@ -96,19 +96,19 @@ void motorR(int PWM){
     OC3A = 0;   //0~65536i => 0~255(No.5pin)
   }
   else{
-    OC0B = 0;     //0~255(No.4pin)
+    OC0B = 0;    //0~255(No.4pin)
     OC3A = -PWM; //0~65536i => 0~255(No.5pin)
   }
 }
 
 void motorL(int PWM){
   if(PWM >= 0){
-    OC4A = PWM * 256; //0~65536 => 0~255(No.6pin)
-    OC4B = 0;         //0~65536 => 0~255(No.7pin)
+    OC4A = PWM * 256;    //0~65536 => 0~255(No.6pin)
+    OC4B = 0;            //0~65536 => 0~255(No.7pin)
   }
   else{
-    OC4A = 0;         //0~65536 => 0~255(No.6pin)
-    OC4B = PWM * 256; //0~65536 => 0~255(No.7pin)
+    OC4A = 0;           //0~65536 => 0~255(No.6pin)
+    OC4B = -PWM * 256;  //0~65536 => 0~255(No.7pin)
   }
 }
 
@@ -124,7 +124,7 @@ void lineCount(){
     flg = 0;
   }
 
-  if(flg - preflg == -1) lineCount++;
+  if(flg - preflg == -1) lineCounter++;
 
   preflg = flg;
 }
