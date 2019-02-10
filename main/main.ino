@@ -94,19 +94,19 @@ void updateEncoder2() {
 
 void motorR(int PWM){
   if(PWM >= 0){
-    OCR3A = 0;  //0~255(No.5pin)
+    OCR3A = 0;      //0~255(No.5pin)
     OCR4A = PWM;    //0~255(No.6pin)
   }
   else{
     OCR3A = -PWM;    //0~255(No.5pin)
-    OCR4A = 0; //0~255(No.6pin)
+    OCR4A = 0;       //0~255(No.6pin)
   }
 }
 
 void motorL(int PWM){
   if(PWM >= 0){
-    OCR4B = PWM;  //0~255(No.7pin)
-    OCR4C = 0;    //0~255(No.8pin)
+    OCR4B = PWM;     //0~255(No.7pin)
+    OCR4C = 0;       //0~255(No.8pin)
   }
   else{
     OCR4B = 0;    //0~255(No.7pin)
@@ -247,8 +247,10 @@ void motorControl() {
 
 
 void motorStop() {
-  PORTG &= ~B00100000;
-  PORTH &= ~B00001000;
+  OCR3A = 0;
+  OCR4A = 0;
+  OCR4B = 0;
+  OCR4C = 0;
 }
 
 /*
