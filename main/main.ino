@@ -92,6 +92,58 @@ void updateEncoder2() {
   enc_prev_left = cd;
 }
 
+void fastAnalogWrite(uint8_t pin, int val){
+  pinMode(pin, OUTPUT);
+    if (val == 0){
+      digitalWrite(pin, LOW);
+    }
+    else if (val == 255){
+      digitalWrite(pin, HIGH);
+    }
+    else{
+      switch(digitalPinToTimer(pin)){
+        case TIMER0A:
+// connect pwm to pin on timer 0, channel A
+          sbi(TCCR0A, COM0A1);
+          OCR0A = val; // set pwm duty
+          break;
+        case TIMER0B:
+// connect pwm to pin on timer 0, channel B
+          sbi(TCCR0A, COM0B1);
+          OCR0B = val; // set pwm duty
+          break;
+        case TIMER1A:
+// connect pwm to pin on timer 1, channel A
+          sbi(TCCR1A, COM1A1);
+          OCR1A = val; // set pwm duty
+          break;
+        case TIMER1B:
+// connect pwm to pin on timer 1, channel B
+          sbi(TCCR1A, COM1B1);
+          OCR1B = val; // set pwm duty
+          break;
+        case TIMER2A:
+// connect pwm to pin on timer 2, channel A
+          sbi(TCCR2A, COM2A1);
+          OCR2A = val; // set pwm duty
+          break;
+        case TIMER2B:
+// connect pwm to pin on timer 2, channel B
+          sbi(TCCR2A, COM2B1);
+          OCR2B = val; // set pwm duty
+          break;
+        case NOT_ON_TIMER:
+        default:
+          if (val < 128) {
+            digitalWrite(pin, LOW);
+          }
+          else {
+            digitalWrite(pin, HIGH);
+          }
+    }
+  }
+}
+
 void motorR(int PWM){
   if(PWM >= 0){
     OCR3A = 0;      //0~255(No.5pin)
