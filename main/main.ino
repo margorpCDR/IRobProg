@@ -94,12 +94,12 @@ void updateEncoder2() {
 
 void motorR(int PWM){
   if(PWM >= 0){
-    OCR3A = PWM;  //0~255(No.5pin)
-    OCR4A = 0;    //0~255(No.6pin)
+    OCR3A = 0;  //0~255(No.5pin)
+    OCR4A = PWM;    //0~255(No.6pin)
   }
   else{
-    OCR3A = 0;    //0~255(No.5pin)
-    OCR4A = -PWM; //0~255(No.6pin)
+    OCR3A = -PWM;    //0~255(No.5pin)
+    OCR4A = 0; //0~255(No.6pin)
   }
 }
 
